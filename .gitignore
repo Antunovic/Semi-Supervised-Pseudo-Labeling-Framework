@@ -1,0 +1,12 @@
+*.pth
+*.ipynb
+.venv/
+*.pdf
+data_10p
+data_20p
+nebitno
+*.docx
+REZULTATI
+backup
+corsican512
+AA
