@@ -26,6 +26,7 @@ from utils import (
     compute_fire_confidence,
     create_directory_structure,
     copy_images,
+    split_data,
     move_and_convert_pseudo_labels
 )
 from pseudo_training import pseudo_training
@@ -141,7 +142,11 @@ def train(epochs,model, train_dataloader, val_dataloader, loss_fn, optimizer, de
 
 def main():
     print("Creating direcotry structure...")
-    create_directory_structure("AA")
+    create_directory_structure(config.BASE_PATH)
+
+    print("spliting data...")
+    split_data(images_dir=config.IMAGES_DIR, masks_dir=config.MASKS_DIR,base_path=config.BASE_PATH,initial_train_percentage=config.INITIAL_TRAINING_PERCENTAGE, seed=50)
+
     print("Initializing models...")
     model_1, model_2, initial_weights_1, initial_weights_2 = get_model()
     

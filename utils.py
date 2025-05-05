@@ -17,6 +17,8 @@ from sklearn.metrics import jaccard_score, f1_score
 from tqdm import tqdm
 import pandas as pd
 
+global N 
+
 preprocess = A.Compose(
     [
         A.LongestMaxSize(max_size=512),  # Resizes longest side to 512, keeps aspect ratio
@@ -111,7 +113,7 @@ def generate_pseudolabels(model_1_path, model_2_path, image_dir, output_dir, enc
     model_2.eval()
 
     # Loop through all images in the directory
-    for image_name in os.listdir(image_dir):
+    for image_name in tqdm(os.listdir(image_dir),desc="Saving pseudolabels"):
 
         image_path = os.path.join(image_dir, image_name)
 
@@ -466,7 +468,7 @@ def combine_and_save_pseudolabels(pseudo_labels_path_src, pseudo_labels_path_dst
 
     # === Backup Combined Labels ===
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    backup_dir = os.path.join(r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican_5proba\unlabeled", f"backup_combined_iter_{timestamp}")
+    backup_dir = os.path.join(os.path.join(config.COMBINED_PSEUDOMASKS_BACKUP, f"backup_combined_iter_{timestamp}"))
 
     shutil.copytree(pseudo_labels_path_dst, backup_dir)
     print(f"Backup created: {backup_dir}")
@@ -550,6 +552,7 @@ def compute_fire_confidence(pseudo_labels_dir):
     Returns:
         Pandas DataFrame with filenames and their average fire confidence, sorted by confidence.
     """
+    print("COMPUTING FIRE CONFIDENCE SCORES")
     confidence_scores = []
 
     for file in os.listdir(pseudo_labels_dir):
@@ -587,65 +590,7 @@ def copy_images(src_dir, dest_dir):
             
             shutil.copy2(src_path, dest_path)  # Copy with metadata
 
-def move_and_convert_pseudo_labels(df, top_n=137):
-    """
-    Move the top pseudo-labels and corresponding images to new directories.
-    Convert pseudo-labels to binary masks (.npy) and delete the original .pt files.
 
-    Args:
-        df (pandas.DataFrame): DataFrame containing pseudo-labels and their confidence scores.
-        top_n (int): Number of top pseudo-labels to move.
-    """
-
-    # Define source and destination directories
-    pseudo_labels_src = r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican_5proba\unlabeled\combined_pseudolabels"
-    images_src = r"C:\Users\Antonio\Desktop\pseudo_labeling\CORSICAN_20P\corsican_5proba\images"
-    
-    pseudo_labels_dest = r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican_5proba\pseudo_training\labels"
-    images_dest = r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican_5proba\pseudo_training\images"
-
-    # Select top N pseudo-labels based on confidence score
-    df = df.sort_values(by="Avg Fire Confidence", ascending=False).head(top_n)
-
-    # Create destination directories if they don't exist
-    os.makedirs(pseudo_labels_dest, exist_ok=True)
-    os.makedirs(images_dest, exist_ok=True)
-
-    for _, row in df.iterrows():
-        pseudo_label_file = row["Pseudo-Label"]  # e.g., "007_rgb_pseudo.pt"
-        
-        # Define paths
-        pseudo_label_src_path = os.path.join(pseudo_labels_src, pseudo_label_file)
-        pseudo_label_dest_path = os.path.join(pseudo_labels_dest, pseudo_label_file.replace("rgb", "gt").replace("_pseudo.pt", ".npy"))  # Save as .npy
-
-        # Process pseudo-label
-        if os.path.exists(pseudo_label_src_path):
-            # Load .pt pseudo-label (2-channel)
-            pseudo_label = torch.load(pseudo_label_src_path).cpu().numpy()
-            
-            # Extract the first channel (binary mask)
-            binary_mask = pseudo_label[0]  # Shape: (H, W)
-
-            # Save as .npy
-            np.save(pseudo_label_dest_path, binary_mask)
-        
-            # Delete the original .pt pseudo-label
-            os.remove(pseudo_label_src_path)
-            
-
-        else:
-            print(f"Pseudo-label not found: {pseudo_label_src_path}")
-
-        # Move corresponding image (.png)
-        image_file = pseudo_label_file.replace("_pseudo.pt", ".png")
-        image_src_path = os.path.join(images_src, image_file)
-        image_dest_path = os.path.join(images_dest, image_file)
-
-        if os.path.exists(image_src_path):
-            shutil.move(image_src_path, image_dest_path)
-            
-        else:
-            print(f"Image not found: {image_src_path}")
 
 
 def create_directory_structure(base_path):
@@ -686,18 +631,25 @@ def create_directory_structure(base_path):
     print(f"✅ Directory structure created successfully under: {base_path}")
 
 
-def split_data(images_dir, masks_dir, base_path, initial_train_percentage=0.05):
+
+
+def split_data(images_dir, masks_dir, base_path, initial_train_percentage=0.05, seed=None):
     """
     Splits images and masks into training, validation, test, and unlabeled sets.
-    
+
     Parameters:
     - images_dir: Path to all images.
     - masks_dir: Path to all masks.
     - base_path: Output directory where structure will be created.
     - initial_train_percentage: Fraction (0.0 - 1.0) of data to be used for initial training (e.g., 0.05 for 5%).
+    - seed: Optional integer to set random seed for reproducibility.
     """
     assert 0 < initial_train_percentage < 1, "Initial training percentage must be between 0 and 1."
     
+    if seed is not None:
+        random.seed(seed)
+        print(f"🔁 Using seed: {seed} for reproducibility.")
+
     images = sorted(os.listdir(images_dir))
     masks = sorted(os.listdir(masks_dir))
     
@@ -714,6 +666,10 @@ def split_data(images_dir, masks_dir, base_path, initial_train_percentage=0.05):
     validation_count = int(0.1 * remaining)
     test_count = int(0.2 * remaining)
     unlabeled_count = remaining - validation_count - test_count  # rest goes to unlabeled
+
+    #calculate the number of unlabeled images added to training process at each iteration
+    
+    config.N = int(0.2 * unlabeled_count)
     
     initial_data = data[:initial_count]
     unlabeled_data = data[initial_count:initial_count + unlabeled_count]
@@ -739,10 +695,59 @@ def split_data(images_dir, masks_dir, base_path, initial_train_percentage=0.05):
     copy_files(train_1_data, os.path.join(base_path, "initial_training", "train_1", "images"), os.path.join(base_path, "initial_training", "train_1", "labels"))
     copy_files(train_2_data, os.path.join(base_path, "initial_training", "train_2", "images"), os.path.join(base_path, "initial_training", "train_2", "labels"))
 
-    print("Data successfully split and copied into respective directories.")
+    print("✅ Data successfully split and copied into respective directories.")
 
 
+def move_and_convert_pseudo_labels(df):
+    """
+    Move the top pseudo-labels and corresponding images to new directories.
+    Convert pseudo-labels to binary masks (.npy) and delete the original .pt files.
+    """
+    import os
+    import shutil
+    import torch
+    import numpy as np
 
+    # Define source and destination directories
+    pseudo_labels_src = config.COMBINED_PSEUDOMASKS_DIR
+    images_src = config.UNLABELED_IMAGES_DIR
 
-            
-        
+    pseudo_labels_dest = config.PSEUDOTRAIN_MASKS_DIR
+    images_dest = config.PSEUDOTRAIN_IMAGES_DIR
+
+    top_n = config.N
+    
+    # Select top N pseudo-labels based on confidence score
+    df = df.sort_values(by="Avg Fire Confidence", ascending=False).head(top_n)
+
+    # Create destination directories
+    os.makedirs(pseudo_labels_dest, exist_ok=True)
+    os.makedirs(images_dest, exist_ok=True)
+
+    for _, row in df.iterrows():
+        pseudo_label_file = os.path.basename(row["Pseudo-Label"])  # Ensure it's just the filename
+
+        pseudo_label_src_path = os.path.join(pseudo_labels_src, pseudo_label_file)
+        pseudo_label_dest_path = os.path.join(
+            pseudo_labels_dest,
+            pseudo_label_file.replace("rgb", "gt").replace("_pseudo.pt", ".npy")
+        )
+
+        image_file = pseudo_label_file.replace("_pseudo.pt", ".png")
+        image_src_path = os.path.join(images_src, image_file)
+        image_dest_path = os.path.join(images_dest, image_file)
+
+        # Process label
+        if os.path.exists(pseudo_label_src_path):
+            pseudo_label = torch.load(pseudo_label_src_path).cpu().numpy()
+            binary_mask = pseudo_label[0]
+            np.save(pseudo_label_dest_path, binary_mask)
+            os.remove(pseudo_label_src_path)
+        else:
+            print(f"Pseudo-label not found: {pseudo_label_src_path}")
+
+        # Move image
+        if os.path.exists(image_src_path):
+            shutil.move(image_src_path, image_dest_path)
+        else:
+            print(f"Image not found: {image_src_path}")

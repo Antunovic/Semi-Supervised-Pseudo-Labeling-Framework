@@ -35,7 +35,7 @@ def initial_training(model_1, model_2, device, checkpoint_dir):
     epochs = config.EPOCHS
 
     print("Starting training for model 1")
-    best_model_1_weights = train(epochs=100,
+    best_model_1_weights = train(epochs=epochs,
                                 model=model_1,
                                 train_dataloader=train_dataloader_1,
                                 val_dataloader=val_dataloader,
@@ -44,7 +44,7 @@ def initial_training(model_1, model_2, device, checkpoint_dir):
                                 device=device)
     
     print("Starting training for model 2")
-    best_model_2_weights = train(epochs=100,
+    best_model_2_weights = train(epochs=epochs,
                                 model=model_2,
                                 train_dataloader=train_dataloader_2,
                                 val_dataloader=val_dataloader,
