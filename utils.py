@@ -16,8 +16,8 @@ import config
 from sklearn.metrics import jaccard_score, f1_score
 from tqdm import tqdm
 import pandas as pd
+import json
 
-global N 
 
 preprocess = A.Compose(
     [
@@ -127,7 +127,7 @@ def generate_pseudolabels(model_1_path, model_2_path, image_dir, output_dir, enc
         torch.save(pseudo_mask_1,output_path_1)
         torch.save(pseudo_mask_2,output_path_2)
 
-        print(f"Saved pseudo-labels for {image_name}")
+        #print(f"Saved pseudo-labels for {image_name}")
 
 
 def compute_neighborhood_weight(combined_mask, kernel):
@@ -460,7 +460,7 @@ def combine_and_save_pseudolabels(pseudo_labels_path_src, pseudo_labels_path_dst
         neighborhood_weight = compute_neighborhood_weight(combined_mask, kernel)
 
         # === Final Weight Calculation ===
-        combined_mask[1] = 0.75 * weight_mask + 0.25 * neighborhood_weight
+        combined_mask[1] = 0.5 * weight_mask + 0.5 * neighborhood_weight
 
         # Save the final pseudo-label as a .pt file
         combined_pseudolabel = torch.tensor(combined_mask, dtype=torch.float32).to(device)
@@ -633,52 +633,74 @@ def create_directory_structure(base_path):
 
 
 
-def split_data(images_dir, masks_dir, base_path, initial_train_percentage=0.05, seed=None):
+def split_data(images_dir, masks_dir, base_path, seed=None, test_split_file=None):
     """
-    Splits images and masks into training, validation, test, and unlabeled sets.
+    Splits dataset into fixed test (20%), validation (10%), and training (70%) sets.
+    Inside the training set, only a portion defined by config.INITIAL_TRAINING_PERCENTAGE is labeled.
+    The rest is used as unlabeled data.
 
     Parameters:
     - images_dir: Path to all images.
     - masks_dir: Path to all masks.
-    - base_path: Output directory where structure will be created.
-    - initial_train_percentage: Fraction (0.0 - 1.0) of data to be used for initial training (e.g., 0.05 for 5%).
-    - seed: Optional integer to set random seed for reproducibility.
+    - base_path: Output directory.
+    - seed: Optional seed for reproducibility.
+    - test_split_file: Optional path to fixed test split file.
     """
-    assert 0 < initial_train_percentage < 1, "Initial training percentage must be between 0 and 1."
-    
     if seed is not None:
         random.seed(seed)
         print(f"🔁 Using seed: {seed} for reproducibility.")
 
     images = sorted(os.listdir(images_dir))
     masks = sorted(os.listdir(masks_dir))
-    
     assert len(images) == len(masks), "Mismatch between images and masks count."
-    
+
     data = list(zip(images, masks))
-    random.shuffle(data)
-
     total = len(data)
-    initial_count = int(initial_train_percentage * total)
-    
-    # Remaining data after initial training
-    remaining = total - initial_count
-    validation_count = int(0.1 * remaining)
-    test_count = int(0.2 * remaining)
-    unlabeled_count = remaining - validation_count - test_count  # rest goes to unlabeled
 
-    #calculate the number of unlabeled images added to training process at each iteration
-    
-    config.N = int(0.2 * unlabeled_count)
-    
-    initial_data = data[:initial_count]
-    unlabeled_data = data[initial_count:initial_count + unlabeled_count]
-    validation_data = data[initial_count + unlabeled_count:initial_count + unlabeled_count + validation_count]
-    test_data = data[initial_count + unlabeled_count + validation_count:]
+    # Define test_split_file path if not provided
+    if test_split_file is None:
+        parent_dir = os.path.dirname(images_dir)
+        test_split_file = os.path.join(parent_dir, "fixed_test_split.json")
 
-    # Split initial_data into two halves
-    train_1_data = initial_data[:len(initial_data) // 2]
-    train_2_data = initial_data[len(initial_data) // 2:]
+    # Load or create fixed test split (20%)
+    test_count = int(0.20 * total)
+    if os.path.exists(test_split_file):
+        with open(test_split_file, "r") as f:
+            test_image_names = set(json.load(f))
+        print(f"📁 Loaded fixed test split from {test_split_file}")
+    else:
+        random.shuffle(data)
+        test_image_names = set([img for img, _ in data[-test_count:]])
+        with open(test_split_file, "w") as f:
+            json.dump(list(test_image_names), f)
+        print(f"💾 Saved fixed test split to {test_split_file}")
+
+    # Separate test and remaining
+    test_data = [pair for pair in data if pair[0] in test_image_names]
+    remaining_data = [pair for pair in data if pair[0] not in test_image_names]
+    random.shuffle(remaining_data)
+
+    # Validation set (10%)
+    validation_count = int(0.10 * total)
+    validation_data = remaining_data[:validation_count]
+
+    # Training candidates (70%)
+    train_data = remaining_data[validation_count:]
+    
+
+    # From training set, take INITIAL_TRAINING_PERCENTAGE from total (not from 70%)
+    labeled_count = int(config.INITIAL_TRAINING_PERCENTAGE * total)
+    assert labeled_count < len(train_data), "Too few training examples for requested label percentage"
+
+    labeled_data = train_data[:labeled_count]
+    unlabeled_data = train_data[labeled_count:]
+
+    # Split labeled data into two halves
+    train_1_data = labeled_data[:len(labeled_data) // 2]
+    train_2_data = labeled_data[len(labeled_data) // 2:]
+
+    # Set config.N globally
+    config.N = int(0.2 * len(unlabeled_data))
 
     def copy_files(data_subset, target_img_dir, target_mask_dir):
         os.makedirs(target_img_dir, exist_ok=True)
@@ -688,7 +710,7 @@ def split_data(images_dir, masks_dir, base_path, initial_train_percentage=0.05, 
             shutil.copy(os.path.join(masks_dir, mask), os.path.join(target_mask_dir, mask))
 
     # Copy files
-    copy_files(initial_data, os.path.join(base_path, "pseudo_training", "images"), os.path.join(base_path, "pseudo_training", "labels"))
+    copy_files(labeled_data, os.path.join(base_path, "pseudo_training", "images"), os.path.join(base_path, "pseudo_training", "labels"))
     copy_files(unlabeled_data, os.path.join(base_path, "unlabeled", "images"), os.path.join(base_path, "unlabeled", "masks"))
     copy_files(validation_data, os.path.join(base_path, "validation", "images"), os.path.join(base_path, "validation", "labels"))
     copy_files(test_data, os.path.join(base_path, "test", "images"), os.path.join(base_path, "test", "labels"))
@@ -751,3 +773,48 @@ def move_and_convert_pseudo_labels(df):
             shutil.move(image_src_path, image_dest_path)
         else:
             print(f"Image not found: {image_src_path}")
+
+# === Metrics ===
+def compute_metrics(pred, target):
+    pred = pred.flatten()
+    target = target.flatten()
+
+    iou = jaccard_score(target, pred, average="binary")
+    dice = f1_score(target, pred, average="binary")
+    accuracy = (pred == target).sum() / len(target)
+
+    return iou, dice, accuracy
+
+# === Evaluate and write to .txt ===
+def evaluate(model_paths, dataloader, device, save_path=os.path.join(config.BASE_PATH,"results.txt")):
+    results = {model_name: {"iou": 0, "dice": 0, "accuracy": 0} for model_name in model_paths}
+
+    with torch.no_grad():
+        for images, masks in tqdm(dataloader, desc="Evaluating Models"):
+            images, masks = images.to(device), masks.to(device)
+            binary_masks = masks[:, 0:1, :, :]  # Shape: (B, 1, H, W)
+
+            for model_name, model_path in model_paths.items():
+                model = load_model(model_path).to(device)
+                logits = model(images)
+                preds = torch.sigmoid(logits) > 0.5
+                iou, dice, acc = compute_metrics(preds.cpu().numpy(), binary_masks.cpu().numpy())
+                results[model_name]["iou"] += iou
+                results[model_name]["dice"] += dice
+                results[model_name]["accuracy"] += acc
+
+    for model_name in results:
+        results[model_name]["iou"] /= len(dataloader)
+        results[model_name]["dice"] /= len(dataloader)
+        results[model_name]["accuracy"] /= len(dataloader)
+
+    with open(save_path, "w") as f:
+        f.write("=== Model Evaluation Results ===\n\n")
+        for model_name, metrics in results.items():
+            f.write(f"Model: {model_name}\n")
+            f.write(f"  - Mean IoU: {metrics['iou']:.4f}\n")
+            f.write(f"  - Mean Dice Score: {metrics['dice']:.4f}\n")
+            f.write(f"  - Mean Pixel Accuracy: {metrics['accuracy']:.4f}\n\n")
+        f.write("=================================\n")
+
+    print(f"Results saved to: {os.path.abspath(save_path)}")

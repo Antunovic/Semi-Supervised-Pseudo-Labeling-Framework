@@ -201,13 +201,18 @@ def create_pseudo_dataloader(labeled_images_dir, masks_dir, unlabeled_images_dir
 
 
 
-def create_dataloader(images_dir, masks_dir, batch_size):
-   
-   dataset = CoriscanDataset(images_dir=images_dir,masks_dir=masks_dir,transform=train_transform)
+def create_dataloader(images_dir, masks_dir, batch_size,is_train=True):
 
-   dataloader = DataLoader(dataset,batch_size=batch_size,num_workers=4,shuffle=True,pin_memory=True,persistent_workers=True,prefetch_factor=4)
+    if is_train == False:
+       transform = test_transform
+    else:
+        transform = train_transform
 
-   return dataloader
+    dataset = CoriscanDataset(images_dir=images_dir,masks_dir=masks_dir,transform=transform)
+
+    dataloader = DataLoader(dataset,batch_size=batch_size,num_workers=4,shuffle=True,pin_memory=True,persistent_workers=True,prefetch_factor=4)
+
+    return dataloader
 
 def vizualize_batch(dataloader):
     
@@ -270,6 +275,15 @@ train_transform = A.Compose(
         ToTensorV2(),
     ],
     is_check_shapes=False  # Disable shape check
+)
+
+# === Define test transforms ===
+test_transform = A.Compose(
+    [
+        A.Normalize(mean=(0.4445, 0.4019, 0.3665), std=(0.2817, 0.2424, 0.3274)),
+        ToTensorV2(),
+    ],
+    is_check_shapes=False  # Disable the shape check
 )
 
 

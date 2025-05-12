@@ -23,6 +23,7 @@ from utils import (
     generate_pseudolabels,
     combine_and_save_pseudolabels,
     load_model,
+    evaluate,
     compute_fire_confidence,
     create_directory_structure,
     copy_images,
@@ -145,7 +146,7 @@ def main():
     create_directory_structure(config.BASE_PATH)
 
     print("spliting data...")
-    split_data(images_dir=config.IMAGES_DIR, masks_dir=config.MASKS_DIR,base_path=config.BASE_PATH,initial_train_percentage=config.INITIAL_TRAINING_PERCENTAGE, seed=50)
+    split_data(images_dir=config.IMAGES_DIR, masks_dir=config.MASKS_DIR,base_path=config.BASE_PATH, seed=config.SEED)
 
     print("Initializing models...")
     model_1, model_2, initial_weights_1, initial_weights_2 = get_model()
@@ -217,6 +218,10 @@ def main():
         df = compute_fire_confidence(config.COMBINED_PSEUDOMASKS_DIR)
         move_and_convert_pseudo_labels(df)
     
+
+    test_dataloader = create_dataloader(images_dir=config.VAL_IMAGES_DIR,masks_dir=config.VAL_MASKS_DIR,batch_size=16,is_train=False)
+
+    evaluate(config.MODEL_PATHS,dataloader=test_dataloader,device=device)
     
 
 if __name__ == "__main__":
