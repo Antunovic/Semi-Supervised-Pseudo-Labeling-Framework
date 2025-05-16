@@ -4,7 +4,8 @@ IMAGES_DIR = r"corsican512\images"
 MASKS_DIR = r"corsican512\masks"
 
 BASE_PATH = r"TEST_5p_2"
-SEED = 2
+#131 317 457
+SEED = 317
 
 N = 0
 

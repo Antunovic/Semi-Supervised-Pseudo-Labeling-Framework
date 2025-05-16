@@ -142,6 +142,7 @@ def train(epochs,model, train_dataloader, val_dataloader, loss_fn, optimizer, de
 
 
 def main():
+    
     print("Creating direcotry structure...")
     create_directory_structure(config.BASE_PATH)
 
