@@ -26,8 +26,10 @@ from utils import (
     evaluate,
     compute_fire_confidence,
     create_directory_structure,
+    create_directory_structure_full_supervision,
     copy_images,
     split_data,
+    split_data_full_supervision,
     move_and_convert_pseudo_labels
 )
 from pseudo_training import pseudo_training

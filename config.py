@@ -1,15 +1,17 @@
 import os
 
+#Dir with all images and labels
 IMAGES_DIR = r"corsican512\images"
 MASKS_DIR = r"corsican512\masks"
 
-BASE_PATH = r"TEST_5p_2"
+#path where data, checkpoints and experimental results will be saved
+BASE_PATH = r""
 #131 317 457
-SEED = 317
+SEED = 457
 
 N = 0
 
-INITIAL_TRAINING_PERCENTAGE = 0.05
+INITIAL_TRAINING_PERCENTAGE = 0.7
 
 # Data paths for initial training
 TRAIN_IMAGES_DIR_1 = os.path.join(BASE_PATH, "initial_training", "train_1", "images")

@@ -630,6 +630,25 @@ def create_directory_structure(base_path):
 
     print(f"✅ Directory structure created successfully under: {base_path}")
 
+def create_directory_structure_full_supervision(base_path):
+    """
+    Creates a simplified directory structure for supervised training, including training, validation,
+    test sets, and a checkpoints folder.
+    """
+    # Define main directories
+    main_dirs = ["training", "validation", "test", "checkpoints"]
+
+    # Define subdirectories for image/label organization
+    image_label_subdirs = ["images", "labels"]
+
+    # Create main directories and their subdirectories
+    for main_dir in main_dirs:
+        main_path = os.path.join(base_path, main_dir)
+        os.makedirs(main_path, exist_ok=True)
+        for sub in image_label_subdirs:
+            os.makedirs(os.path.join(main_path, sub), exist_ok=True)
+
+    print(f"✅ Simplified directory structure created successfully under: {base_path}")
 
 
 
@@ -718,6 +737,67 @@ def split_data(images_dir, masks_dir, base_path, seed=None, test_split_file=None
     copy_files(train_2_data, os.path.join(base_path, "initial_training", "train_2", "images"), os.path.join(base_path, "initial_training", "train_2", "labels"))
 
     print("✅ Data successfully split and copied into respective directories.")
+
+def split_data_full_supervision(images_dir, masks_dir, base_path, seed=None, test_split_file=None):
+    """
+    Splits dataset into fixed test (20%), validation (10%), and training (70%) sets.
+    Assumes fully supervised training (no unlabeled subset).
+    """
+
+    if seed is not None:
+        random.seed(seed)
+        print(f"🔁 Using seed: {seed} for reproducibility.")
+
+    images = sorted(os.listdir(images_dir))
+    masks = sorted(os.listdir(masks_dir))
+    assert len(images) == len(masks), "Mismatch between images and masks count."
+
+    data = list(zip(images, masks))
+    total = len(data)
+
+    # Define path for fixed test split
+    if test_split_file is None:
+        parent_dir = os.path.dirname(images_dir)
+        test_split_file = os.path.join(parent_dir, "fixed_test_split.json")
+
+    # Load or create test split
+    test_count = int(0.20 * total)
+    if os.path.exists(test_split_file):
+        with open(test_split_file, "r") as f:
+            test_image_names = set(json.load(f))
+        print(f"📁 Loaded fixed test split from {test_split_file}")
+    else:
+        random.shuffle(data)
+        test_image_names = set([img for img, _ in data[-test_count:]])
+        with open(test_split_file, "w") as f:
+            json.dump(list(test_image_names), f)
+        print(f"💾 Saved fixed test split to {test_split_file}")
+
+    # Separate test and remaining
+    test_data = [pair for pair in data if pair[0] in test_image_names]
+    remaining_data = [pair for pair in data if pair[0] not in test_image_names]
+    random.shuffle(remaining_data)
+
+    # Validation (10% of total)
+    validation_count = int(0.10 * total)
+    validation_data = remaining_data[:validation_count]
+
+    # Training = remaining
+    train_data = remaining_data[validation_count:]
+
+    def copy_files(data_subset, target_img_dir, target_mask_dir):
+        os.makedirs(target_img_dir, exist_ok=True)
+        os.makedirs(target_mask_dir, exist_ok=True)
+        for img, mask in data_subset:
+            shutil.copy(os.path.join(images_dir, img), os.path.join(target_img_dir, img))
+            shutil.copy(os.path.join(masks_dir, mask), os.path.join(target_mask_dir, mask))
+
+    # Copy files to simplified structure
+    copy_files(train_data, os.path.join(base_path, "training", "images"), os.path.join(base_path, "training", "labels"))
+    copy_files(validation_data, os.path.join(base_path, "validation", "images"), os.path.join(base_path, "validation", "labels"))
+    copy_files(test_data, os.path.join(base_path, "test", "images"), os.path.join(base_path, "test", "labels"))
+
+    print("✅ Data successfully split and copied into training, validation, and test folders.")
 
 
 def move_and_convert_pseudo_labels(df):
