@@ -3,14 +3,13 @@ import torch
 import numpy as np
 import albumentations as A
 import matplotlib.pyplot as plt
-import config
+
 from model import get_model
 
 from PIL import Image
 from torch.utils.data import Dataset, DataLoader
 from albumentations.pytorch import ToTensorV2
-import multiprocessing
-import cv2
+
 
 
 
@@ -30,35 +29,6 @@ class CoriscanDataset (Dataset):
   def __len__(self):
     return len(self.images_names)
   
-#   def __getitem__(self,index):
-
-#     image_path = os.path.join(self.images_dir,self.images_names[index])
-#     mask_path = os.path.join(self.masks_dir,self.masks_names[index])
-
-#     try:
-#         image = Image.open(image_path).convert("RGB")
-#         image = np.array(image)
-
-#     except Exception as e:
-#        raise RuntimeError((f"Error loading image: {image_path}"))  from e
-
-#     try:
-#         mask = np.loadtxt(mask_path,delimiter=',',dtype=np.float32)
-#         # mask = Image.open(mask_path).convert("L")
-#         # mask = np.array(mask)
-#     except Exception as e:
-#        raise RuntimeError((f"Error loading mask: {mask_path}")) from e
-
-
-#     if self.transform is not None:
-#             transformed = self.transform(image=image, mask=mask)
-#             image = transformed["image"]
-#             mask = transformed["mask"]
-
-#     mask = mask.unsqueeze(0)
-#     mask = mask.to(dtype=torch.float32)
-
-#     return image, mask
 
   def __getitem__(self, index):
         image_path = os.path.join(self.images_dir, self.images_names[index])
@@ -125,11 +95,6 @@ class CombinedDataset(Dataset):
 
             except Exception as e:
                 raise RuntimeError((f"Error loading image: {image_path}"))  from e
-
-            # try:
-            #     mask = np.loadtxt(mask_path,delimiter=',',dtype=np.float32)
-            # except Exception as e:
-            #     raise RuntimeError((f"Error loading mask: {mask_path}")) from e
 
             try:
                 mask = np.load(mask_path, allow_pickle=False)  # Use .npy instead of CSV
@@ -250,17 +215,6 @@ def vizualize_batch(dataloader):
 
 train_transform = A.Compose(
     [
-        # ✅ Resize while keeping aspect ratio, then pad to 512x512
-        # A.LongestMaxSize(max_size=512),  # Resizes longest side to 512, keeps aspect ratio
-        # A.PadIfNeeded(
-        #     min_height=512, min_width=512, 
-        #     border_mode=cv2.BORDER_CONSTANT, 
-        #     fill=0,  # Pads with black (0)
-        #     p=1.0
-        # ),
-
-        # ✅ Your existing transformations
-        # A.ShiftScaleRotate(shift_limit=0.2, scale_limit=0.2, rotate_limit=30, p=0.5),  # Replaced by Affine
         A.Affine(
             scale=(0.8, 1.2),  # Equivalent to scale_limit=0.2
             translate_percent=(0.2, 0.2),  # Equivalent to shift_limit=0.2
@@ -285,19 +239,3 @@ test_transform = A.Compose(
     ],
     is_check_shapes=False  # Disable the shape check
 )
-
-
-def main():
-    
-    cd = CombinedDataset(labeled_images_dir=r"C:\Users\Antonio\Desktop\pseudo_labeling\data_test\val_1\images",
-                     masks_dir=r"C:\Users\Antonio\Desktop\pseudo_labeling\data_test\val_1\labels",
-                     unlabeled_images_dir=r"C:\Users\Antonio\Desktop\pseudo_labeling\data_test\unlabeled\images",
-                     pseudomasks_dir=r"C:\Users\Antonio\Desktop\pseudo_labeling\data_test\unlabeled\combined_pseudo",
-                     transform=train_transform)
-    
-    print("hello world")
-
-    dataloader = DataLoader(cd, batch_size=8, shuffle=True)
-    
-if __name__ == "__main__":
-    main()

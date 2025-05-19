@@ -19,4 +19,3 @@ reproductions
 *.tmp
 test.py
 train_two_models.py
-pseudo_training.py

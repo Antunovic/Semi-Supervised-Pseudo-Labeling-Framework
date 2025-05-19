@@ -1,15 +1,11 @@
-import torch
-import config
-from torch.optim import Adam
-from torch.nn import BCEWithLogitsLoss
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from model import get_model
-from data_setup import create_dataloader
-from metrics import compute_miou,dice_loss,combined_bce_dice_loss
-from tqdm.auto import tqdm
-from utils import generate_pseudolabels,combine_and_save_pseudolabels
-from train import train
 import os
+import torch
+
+import config
+from data_setup import create_dataloader
+from metrics import combined_bce_dice_loss
+from train import train
+
 
 def initial_training(model_1, model_2, device, checkpoint_dir):
     print("Creating DataLoaders for initial training...")

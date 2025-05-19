@@ -4,12 +4,6 @@ import warnings
 from pathlib import Path
 
 import torch
-from torch.optim import Adam
-from torch.nn import BCEWithLogitsLoss
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchinfo import summary
-import matplotlib.pyplot as plt
-import numpy as np
 from tqdm.auto import tqdm
 
 
@@ -22,14 +16,10 @@ from metrics import compute_miou
 from utils import (
     generate_pseudolabels,
     combine_and_save_pseudolabels,
-    load_model,
     evaluate,
     compute_fire_confidence,
     create_directory_structure,
-    create_directory_structure_full_supervision,
-    copy_images,
     split_data,
-    split_data_full_supervision,
     move_and_convert_pseudo_labels
 )
 from pseudo_training import pseudo_training
