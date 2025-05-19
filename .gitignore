@@ -17,3 +17,6 @@ TEST_5p_1
 TEST_5p_2
 reproductions
 *.tmp
+test.py
+train_two_models.py
+pseudo_training.py
