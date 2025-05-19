@@ -52,27 +52,6 @@ def get_model(encoder_name=config.ENCODER_NAME,
                 in_channels=in_channels,
                 classes=classes)
 
-    # # Freeze all encoder layers (Backbone)
-    # def freeze_encoder(model):
-    #     for param in model.encoder.parameters():
-    #         param.requires_grad = False  # Prevents training encoder weights
-
-    # freeze_encoder(model_1)
-    # freeze_encoder(model_2)
-
-    # # Reinitialize only the decoder and segmentation head
-    # def reinitialize_weights(module):
-    #     if isinstance(module, (torch.nn.Conv2d, torch.nn.Linear)):  # Reinitialize only Conv2d & Linear layers
-    #         torch.nn.init.kaiming_uniform_(module.weight)  # Kaiming He initialization
-    #         if module.bias is not None:
-    #             torch.nn.init.zeros_(module.bias)  # Set biases to zero
-
-    # model_1.decoder.apply(reinitialize_weights)
-    # model_1.segmentation_head.apply(reinitialize_weights)
-
-    # model_2.decoder.apply(reinitialize_weights)
-    # model_2.segmentation_head.apply(reinitialize_weights)
-
     # Save initial weights (ensures frozen encoder weights remain frozen when reloaded)
     initial_weights_model_1 = copy.deepcopy(model_1.state_dict())
     initial_weights_model_2 = copy.deepcopy(model_2.state_dict())
