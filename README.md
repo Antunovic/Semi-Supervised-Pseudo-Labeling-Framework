@@ -50,9 +50,11 @@ To use this project, you need to prepare the Corsican Fire Dataset in the follow
 
 2. Inside the `data/` directory, place the **Corsican Fire Dataset** organized into the following structure:
 
+```
 data/
 ├── images/ # Input RGB images
 └── masks/ # Corresponding binary segmentation masks
+```
 
 3. **Important Notes:**
 - All images and masks must be resized to **512×512 pixels** while **preserving the original aspect ratio** (e.g., by padding).
