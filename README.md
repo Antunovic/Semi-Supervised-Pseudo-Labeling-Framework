@@ -80,7 +80,6 @@ python src/train.py
 ## Proposed algorithm
 
 ![Performance Comparison](images/algoriithm.png)
-![Predictions](images/predictions.png)
 
 ## Citation
 
