@@ -12,7 +12,7 @@ SEED = 457
 
 N = 0
 
-INITIAL_TRAINING_PERCENTAGE = 0.7
+INITIAL_TRAINING_PERCENTAGE = 0.1
 
 # Data paths for initial training
 TRAIN_IMAGES_DIR_1 = os.path.join(BASE_PATH, "initial_training", "train_1", "images")
@@ -62,7 +62,7 @@ MODEL_PATHS = {
 #Hyperparameters
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 8
-EPOCHS = 100
+EPOCHS = 30
 
 # Model settings
 ENCODER_NAME = "resnet50"
@@ -70,8 +70,3 @@ ENCODER_WEIGHTS = None
 IN_CHANNELS = 3
 CLASSES = 1
 
-# TRAIN_IMAGES_DIR_1_temp = r"C:\Users\Antonio\Desktop\pseudo_labeling\nebitno\data_small\train_2\images"
-# TRAIN_MASKS_DIR_1_temp = r"C:\Users\Antonio\Desktop\pseudo_labeling\nebitno\data_small\train_2\labels"
-
-# VAL_IMAGES_DIR_1_temp = r"C:\Users\Antonio\Desktop\pseudo_labeling\nebitno\data_small\val_1\images"
-# VAL_MASKS_DIR_1_temp = r"C:\Users\Antonio\Desktop\pseudo_labeling\nebitno\data_small\val_1\labels"
