@@ -5,14 +5,14 @@ IMAGES_DIR = r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican512\images"
 MASKS_DIR = r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican512\masks"
 
 #path where data, checkpoints and experimental results will be saved
-BASE_PATH = r"proba"
+BASE_PATH = r"proba11"
 #131 317 457
 #seed for data split
 SEED = 457
 
 N = 0
 
-INITIAL_TRAINING_PERCENTAGE = 0.1
+INITIAL_TRAINING_PERCENTAGE = 0.7
 
 # Data paths for initial training
 TRAIN_IMAGES_DIR_1 = os.path.join(BASE_PATH, "initial_training", "train_1", "images")
@@ -62,7 +62,7 @@ MODEL_PATHS = {
 #Hyperparameters
 LEARNING_RATE = 1e-3
 BATCH_SIZE = 8
-EPOCHS = 1
+EPOCHS = 100
 
 # Model settings
 ENCODER_NAME = "resnet50"

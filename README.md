@@ -77,9 +77,9 @@ Once configured, start the training by running the following command from the ro
 python src/train.py
 ```
 
-## Results
+## Proposed algorithm
 
-![Performance Comparison](images/results.png)
+![Performance Comparison](images/algoriithm.png)
 ![Predictions](images/predictions.png)
 
 ## Citation
