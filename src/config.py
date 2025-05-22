@@ -1,11 +1,11 @@
 import os
 
 #Dir with all images and labels
-IMAGES_DIR = r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican512\images"
-MASKS_DIR = r"C:\Users\Antonio\Desktop\pseudo_labeling\corsican512\masks"
+IMAGES_DIR = r""
+MASKS_DIR = r""
 
 #path where data, checkpoints and experimental results will be saved
-BASE_PATH = r"proba11"
+BASE_PATH = r""
 #131 317 457
 #seed for data split
 SEED = 457
